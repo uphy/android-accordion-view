@@ -211,6 +211,25 @@ public class AccordionView extends LinearLayout {
 
     wrappedChildren[position].setVisibility(visibility);
   }
+  
+  /**
+   * Get the index of the specified section.
+   * 
+   * @param position index of the section 
+   * @return {@link View#GONE} and {@link View#VISIBLE}
+   */
+  public int getSectionVisibility(int position){
+	return wrappedChildren[position].getVisibility(); 
+  }
+
+  /**
+   * Get the number of sections.
+   *  
+   * @return the number of sections
+   */
+  public int getSectionCount(){
+	return this.wrappedChildren.length;
+  }
 
   public void toggleSection(int position) {
     assertWrappedChildrenPosition(position);
