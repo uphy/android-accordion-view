@@ -38,6 +38,8 @@ public class AccordionView extends LinearLayout {
 
   private Map<Integer, View> sectionByChildId = new HashMap<Integer, View>();
 
+  private int[] sectionVisibilities = new int[0];
+
   public AccordionView(Context context, AttributeSet attrs) {
     super(context, attrs);
 
@@ -49,12 +51,17 @@ public class AccordionView extends LinearLayout {
       sectionContainer = a.getResourceId(R.styleable.accordion_section_container, 0);
       sectionContainerParent = a.getResourceId(R.styleable.accordion_section_container_parent, 0);
       sectionBottom = a.getResourceId(R.styleable.accordion_section_bottom, 0);
-      int sectionheadersResourceId = a.getResourceId(R.styleable.accordion_section_headers, 0);
+      int sectionHeadersResourceId = a.getResourceId(R.styleable.accordion_section_headers, 0);
+      int sectionVisibilityResourceId = a.getResourceId(R.styleable.accordion_section_visibility, 0);
 
-      if (sectionheadersResourceId == 0) {
+      if (sectionHeadersResourceId == 0) {
         throw new IllegalArgumentException("Please set section_headers as reference to strings array.");
       }
-      sectionHeaders = getResources().getStringArray(sectionheadersResourceId);
+      sectionHeaders = getResources().getStringArray(sectionHeadersResourceId);
+
+      if (sectionVisibilityResourceId != 0) {
+        sectionVisibilities = getResources().getIntArray(sectionVisibilityResourceId);
+      }
     }
 
     if (headerLayoutId == 0 || headerLabel == 0 || sectionContainer == 0 || sectionContainerParent == 0 || sectionBottom == 0) {
@@ -63,6 +70,12 @@ public class AccordionView extends LinearLayout {
     }
 
     setOrientation(VERTICAL);
+  }
+
+  private void assertWrappedChildrenPosition(int position) {
+    if (wrappedChildren == null || position >= wrappedChildren.length) {
+      throw new IllegalArgumentException("Cannot toggle section " + position + ".");
+    }
   }
 
   public View getChildById(int id) {
@@ -79,7 +92,7 @@ public class AccordionView extends LinearLayout {
     return sectionByChildId.get(id);
   }
 
-  private View getView(final LayoutInflater inflater, int i) {
+  private View getView(final LayoutInflater inflater, int i, boolean hide) {
     final View container = inflater.inflate(sectionContainer, null);
     container.setLayoutParams(new ListView.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, 0));
     final ViewGroup newParent = (ViewGroup) container.findViewById(sectionContainerParent);
@@ -88,6 +101,10 @@ public class AccordionView extends LinearLayout {
     if (container.getId() == -1) {
       container.setId(i);
     }
+
+    if (hide) {
+      container.setVisibility(GONE);
+    }
     return container;
   }
 
@@ -95,7 +112,7 @@ public class AccordionView extends LinearLayout {
     return inflater.inflate(sectionBottom, null);
   }
 
-  private View getViewHeader(LayoutInflater inflater, final int position) {
+  private View getViewHeader(LayoutInflater inflater, final int position, boolean hide) {
     final View view = inflater.inflate(headerLayoutId, null);
     ((TextView) view.findViewById(headerLabel)).setText(sectionHeaders[position]);
 
@@ -117,11 +134,7 @@ public class AccordionView extends LinearLayout {
 
       @Override
       public void onClick(View v) {
-        if (wrappedChildren[position].getVisibility() == VISIBLE) {
-          wrappedChildren[position].setVisibility(GONE);
-        } else {
-          wrappedChildren[position].setVisibility(VISIBLE);
-        }
+        toggleSection(position);
       }
     };
     foldButton.setOnClickListener(onClickListener);
@@ -166,8 +179,10 @@ public class AccordionView extends LinearLayout {
     removeAllViews();
 
     for (int i = 0; i < childCount; i++) {
-      wrappedChildren[i] = getView(inflater, i);
-      View header = getViewHeader(inflater, i);
+      final boolean hide = sectionVisibilities.length > 0 && sectionVisibilities[i] == 0;
+
+      wrappedChildren[i] = getView(inflater, i, hide);
+      View header = getViewHeader(inflater, i, hide);
       View footer = getViewFooter(inflater);
       final LinearLayout section = new LinearLayout(getContext());
       section.setOrientation(LinearLayout.VERTICAL);
@@ -183,6 +198,28 @@ public class AccordionView extends LinearLayout {
     initialized = true;
 
     super.onFinishInflate();
+  }
+
+  /**
+   * 
+   * @param position
+   * @param visibility
+   *          {@link View#GONE} and {@link View#VISIBLE}
+   */
+  public void setSectionVisibility(int position, int visibility) {
+    assertWrappedChildrenPosition(position);
+
+    wrappedChildren[position].setVisibility(visibility);
+  }
+
+  public void toggleSection(int position) {
+    assertWrappedChildrenPosition(position);
+
+    if (wrappedChildren[position].getVisibility() == VISIBLE) {
+      setSectionVisibility(position, GONE);
+    } else {
+      setSectionVisibility(position, VISIBLE);
+    }
   }
 
 }
